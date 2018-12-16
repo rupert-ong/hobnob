@@ -1,55 +1,43 @@
 // Allows us to use Newer JavaScript API (Like Fetch)
 import '@babel/polyfill';
-import http from 'http';
+import express from 'express';
+import bodyParser from 'body-parser';
 
-function requestHandler(req, res) {
-  if (req.method === 'POST' && req.url === '/users') {
-    const payloadData = [];
-    const PAYLOAD_LIMIT = 1e6;
+const app = express();
 
-    // Stream data in, using on(data:Buffer) and end() event handlers
-    req.on('data', (data) => {
-      payloadData.push(data);
-      // Limit payload to 1M bytes. Destroy connection if over
-      const bodyString = Buffer.concat(payloadData).toString();
-      if (bodyString.length > PAYLOAD_LIMIT) {
-        res.writeHead(413, { 'Content-Type': 'text/plain' });
-        res.end();
-        res.connection.destroy();
-      }
+app.use(bodyParser.json({ limit: 1e6 }));
+
+app.post('/users', (req, res) => {
+  if (req.headers['content-length'] === '0') {
+    res.status(400);
+    res.set('Content-Type', 'application/json');
+    res.json({
+      message: 'Payload should not be empty',
     });
-
-    req.on('end', () => {
-      if (payloadData.length === 0) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          message: 'Payload should not be empty',
-        }));
-        return;
-      }
-
-      if (req.headers['content-type'] !== 'application/json') {
-        res.writeHead(415, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          message: 'The "Content-Type" header must always be "application/json"',
-        }));
-        return;
-      }
-
-      try {
-        const bodyString = Buffer.concat(payloadData).toString();
-        JSON.parse(bodyString);
-      } catch (e) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          message: 'Payload should be in JSON format',
-        }));
-      }
-    });
-  } else {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Hello Mom!');
+    return;
   }
-}
-const server = http.createServer(requestHandler);
-server.listen(8080);
+
+  if (req.headers['content-type'] !== 'application/json') {
+    res.status(415);
+    res.set('Content-Type', 'application/json');
+    res.json({
+      message: 'The "Content-Type" header must always be "application/json"',
+    });
+  }
+});
+
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && err.body && err.type === 'entity.parse.failed') {
+    res.status(400);
+    res.set('Content-Type', 'application/json');
+    res.json({
+      message: 'Payload should be in JSON format',
+    });
+  }
+  next();
+});
+
+app.listen(process.env.SERVER_PORT, () => {
+  // eslint-disable-next-line no-console
+  console.log(`Hobnob API server listing on port ${process.env.SERVER_PORT}`);
+});

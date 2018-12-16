@@ -9,6 +9,10 @@ When(/^the client creates a (GET|POST|PATCH|PUT|DELETE|OPTIONS|HEAD) request to 
   this.request = superagent(method, `${process.env.SERVER_HOSTNAME}:${process.env.SERVER_PORT}${path}`);
 });
 
+When(/^without a (?:"|')([\w-]+)(?:"|') header set$/, function (headerName) {
+  this.request.unset(headerName);
+});
+
 When(/^attaches a generic (.+) payload$/, function (payloadType) {
   switch (payloadType) {
     case 'malformed':

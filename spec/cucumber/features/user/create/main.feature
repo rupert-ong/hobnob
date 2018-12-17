@@ -25,7 +25,7 @@ Examples:
 
 Scenario Outline: Bad Request Payload
 
-If the client sends a POST request to /users with a JSON payload missing a name and/or email
+If the client sends a POST request to /users with a JSON payload missing a email and/or password
 property, it should receive a 400 Bad Request HTTP status code.
 
 When the client creates a POST request to /users
@@ -40,3 +40,21 @@ Examples:
 | missingFields |
 | email         |
 | password      |
+
+Scenario Outline: Request Payload with Properties of an Unsupported Type
+
+If the client sends a POST request to /users with a JSON payload when the email and/or password
+field isn't of type string, it should receive a 400 Bad Request HTTP status code.
+
+When the client creates a POST request to /users
+And attaches a Create User payload whose <field> field is not a <type>
+And sends the request
+Then our API should respond with a 400 HTTP status code
+And the payload of the response should be a JSON object
+And contains a message property which says "The email and password fields must be of type string"
+
+Examples:
+
+| field     | type    |
+| email     | string  |
+| password  | string  |

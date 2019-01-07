@@ -1,7 +1,13 @@
+/* eslint-disable no-underscore-dangle */
 // Allows us to use Newer JavaScript API (Like Fetch)
 import '@babel/polyfill';
 import express from 'express';
 import bodyParser from 'body-parser';
+import elasticsearch from 'elasticsearch';
+
+const client = new elasticsearch.Client({
+  host: `${process.env.ELASTICSEARCH_HOSTNAME}:${process.env.ELASTICSEARCH_PORT}`,
+});
 
 const app = express();
 
@@ -44,7 +50,7 @@ app.use(checkEmptyPayload);
 app.use(checkContentTypeIsSet);
 app.use(checkContentTypeIsJson);
 
-app.post('/users', (req, res, next) => {
+app.post('/users', (req, res) => {
   if (
     !Object.prototype.hasOwnProperty.call(req.body, 'email')
     || !Object.prototype.hasOwnProperty.call(req.body, 'password')
@@ -68,7 +74,20 @@ app.post('/users', (req, res, next) => {
     res.set('Content-Type', 'application/json');
     res.json({ message: 'The email field must be a valid email' });
   }
-  next();
+
+  client.index({
+    index: 'hobnob',
+    type: 'user',
+    body: req.body,
+  }).then((result) => {
+    res.status(201);
+    res.set('Content-Type', 'text/plain');
+    res.send(result._id);
+  }).catch(() => {
+    res.status(500);
+    res.set('Content-Type', 'application/json');
+    res.json({ message: 'Internal Server Error' });
+  });
 });
 
 app.use((err, req, res, next) => {

@@ -4,13 +4,17 @@
   "description": "Back end for a simple user directory API with recommendation engine",
   "main": "src/index.js",
   "scripts": {
-    "precommit": "npm run lint",
     "fix": "eslint src --fix",
     "lint": "eslint src",
     "build": "rimraf dist && babel src -d dist",
     "serve": "npm run build && node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "nodemon -w src --exec npm run serve"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint"
+    }
   },
   "author": "Rupert Ong <rupert.ong@gmail.com>",
   "license": "MIT",
